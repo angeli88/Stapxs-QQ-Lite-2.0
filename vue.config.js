@@ -8,10 +8,6 @@ module.exports = {
             overlay: false
         }
     },
-    publicPath: process.env.NODEJS_ENV === 'github-actions'
-        ? '/Stapxs-QQ-Lite-2.0/'
-        : undefined
-    ,
     transpileDependencies: true,
     configureWebpack: {
         devtool: 'source-map',
