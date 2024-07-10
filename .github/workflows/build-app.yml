@@ -1,9 +1,7 @@
 # 在主分支上构建
 name: build
-on:
-  push: # push 触发
-    branches:
-      - next
+on: workflow_dispatch
+
 
 jobs:
   # ========================= 准备项目 ========================= 
