@@ -8,7 +8,7 @@ module.exports = {
             overlay: false
         }
     },
-    publicPath: './',
+    publicPath: '/lite',
     transpileDependencies: true,
     configureWebpack: {
         devtool: 'source-map',
