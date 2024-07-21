@@ -9,6 +9,7 @@ module.exports = {
         }
     },
     transpileDependencies: true,
+    productionSourceMap: false,
     configureWebpack: {
         devtool: 'source-map',
         module: {
@@ -77,7 +78,6 @@ module.exports = {
                 appId: 'com.stapxs.qqweb',
                 productName: 'Stapxs QQ Lite',
                 copyright: 'Copyright © 2022-2024 Stapx Steve [林槐]',
-                // buildDependenciesFromSource: true,
 
                 directories: {
                     output: 'dist_electron/out'
@@ -119,6 +119,8 @@ module.exports = {
                     target: [
                         {
                             target: 'portable',
+                            // Windows 同时打包多个架构会融合在一个 exe 中，体积巨大
+                            // 所以这儿只打了更常用 的 x64
                             arch: 'x64'
                         }
                     ],
@@ -137,7 +139,11 @@ module.exports = {
                     ],
                     category: 'public.app-category.social-networking',
                     icon: 'public/img/icons/icon-client-mac.icns',
-                    darkModeSupport: true
+                    darkModeSupport: true,
+                    extraResources: [{
+                        from: 'resources/tri-tone.aif',
+                        to: 'tir-tone.aif'
+                    }]
                 },
                 dmg: {
                     background: 'public/img/dmg-bg.png',
@@ -157,7 +163,6 @@ module.exports = {
                         },
                     ],
                 },
-                
                 afterAllArtifactBuild: async (context) => {
                     // 如果环境参数中有 `github-actions`，则删除 `dist_electron/out` 目录下所有的
                     //  `*-unpacked` 目录和 `build` 开头的文件，便于 GitHub Actions 上传构建结果
@@ -179,22 +184,6 @@ module.exports = {
                             }
                         }
                     }
-                    // 生成所有输出文件的 MD5 验证文件
-                    const crypto = require('crypto')
-                    const fs = require('fs')
-                    const path = require('path')
-                    const fileList = fs.readdirSync(context.outDir)
-                    let md5List = []
-                    for (const item of fileList) {
-                        // 只包括 stapxs 开头的文件，忽略大小写，忽略文件夹
-                        if (item.toLowerCase().startsWith('stapxs') && 
-                            fs.statSync(path.join(context.outDir, item)).isFile()) {
-                            const file = fs.readFileSync(path.join(context.outDir, item))
-                            const md5Str = crypto.createHash('md5').update(file).digest('hex')
-                            md5List.push(`${md5Str}  ${item}`)
-                        }
-                    }
-                    fs.writeFileSync(path.join(context.outDir, 'md5sum.txt'), md5List.join('\n'))
                 }
             }
         }

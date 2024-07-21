@@ -68,7 +68,7 @@
                         </div>
                         <div class="theme-color-col">
                             <label v-for="(name, index) in colors" :title="name" :key="'color_id_' + index" class="ss-radio">
-                                <input type="radio" name="theme_color" @change="save" :data-id="index"
+                                <input type="radio" name="theme_color" @change="save($event); gaColor($event)" :data-id="index"
                                     :checked="runtimeData.sysConfig.theme_color === undefined ? index === 0 : Number(runtimeData.sysConfig.theme_color) === index">
                                 <div :style="'background: var(--color-main-' + index + ');'">
                                     <div></div>
@@ -94,7 +94,7 @@
                     </label>
                 </div>
             </template>
-            <template v-if="runtimeData.tags.isElectron && browser.os == 'Windows 10'">
+            <template v-if="runtimeData.tags.isElectron && browser.os != 'Linux'">
                 <div class="opt-item">
                     <font-awesome-icon :icon="['fas', 'wand-magic-sparkles']" />
                     <div>
@@ -111,6 +111,17 @@
                 </div>
             </template>
             <div class="opt-item">
+                <font-awesome-icon :icon="['fas', 'table-columns']" />
+                <div>
+                    <span>{{ $t('option_dev_chatview_name') }}</span>
+                    <span>{{ $t('option_dev_chatview_name_tip') }}</span>
+                </div>
+                <select @change="save($event); gaChatView($event)" name="chatview_name" title="chatview_name" v-model="chatview_name">
+                    <option value="">{{ $t('option_dev_chatview_name_none') }}</option>
+                    <option v-for="item in getAppendChatView()" :value="item" :key="item">{{ item.replace('Chat', '') }}</option>
+                </select>
+            </div>
+            <div class="opt-item">
                 <font-awesome-icon :icon="['fas', 'image']" />
                 <div>
                     <span>{{ $t('option_view_background') }}</span>
@@ -126,7 +137,7 @@
                     <span>{{ $t('option_view_background_blur_tip') }}</span>
                 </div>
                 <div class="ss-range">
-                    <input :style="`width:150px;background-size: ${runtimeData.sysConfig.chat_background_blur}% 100%;`" type="range" v-model="runtimeData.sysConfig.chat_background_blur" name="chat_background_blur" @input="save">
+                    <input :style="`background-size: ${runtimeData.sysConfig.chat_background_blur}% 100%;`" type="range" v-model="runtimeData.sysConfig.chat_background_blur" name="chat_background_blur" @input="save">
                     <span :style="`color: var(--color-font${runtimeData.sysConfig.chat_background_blur > 50 ? '-r' : ''})`">{{ runtimeData.sysConfig.chat_background_blur }} px</span>
                 </div>
             </div>
@@ -140,7 +151,7 @@
                     <span>{{ $t('option_view_initial_scale_tip') }}</span>
                 </div>
                 <div class="ss-range">
-                    <input :style="`width:150px;background-size: ${initialScaleShow / 0.05}% 100%;`" type="range" min="0.1" max="5" step="0.05" v-model="runtimeData.sysConfig.initial_scale" name="initial_scale" @change="save" @input="setInitialScaleShow">
+                    <input :style="`background-size: ${initialScaleShow / 0.05}% 100%;`" type="range" min="0.1" max="5" step="0.05" v-model="runtimeData.sysConfig.initial_scale" name="initial_scale" @change="save" @input="setInitialScaleShow">
                     <span :style="`color: var(--color-font${initialScaleShow / 0.05 > 50 ? '-r' : ''})`">{{ initialScaleShow }}</span>
                 </div>
             </div>
@@ -151,7 +162,7 @@
                     <span>{{ $t('option_view_fs_adaptation_tip') }}</span>
                 </div>
                 <div class="ss-range">
-                    <input :style="`width:150px;background-size: ${fsAdaptationShow / 50 * 100}% 100%;`" type="range" min="0" max="50" step="10" v-model="runtimeData.sysConfig.fs_adaptation" name="fs_adaptation" @change="save" @input="setFsAdaptationShow">
+                    <input :style="`background-size: ${fsAdaptationShow / 50 * 100}% 100%;`" type="range" min="0" max="50" step="10" v-model="runtimeData.sysConfig.fs_adaptation" name="fs_adaptation" @change="save" @input="setFsAdaptationShow">
                     <span :style="`color: var(--color-font${fsAdaptationShow / 50 > 0.5 ? '-r' : ''})`">{{ fsAdaptationShow }} px</span>
                 </div>
             </div>
@@ -195,7 +206,8 @@ export default defineComponent({
             colors: ['林槐蓝', '墨竹青', '少女粉', '微软紫', '坏猫黄', '玄素黑'],
             browser: detect() as BrowserInfo,
             initialScaleShow: 0.1,
-            fsAdaptationShow: 0
+            fsAdaptationShow: 0,
+            chatview_name: ''
         }
     },
     methods: {
@@ -203,6 +215,18 @@ export default defineComponent({
             const sender = event.target as HTMLInputElement
             // UM：上传语言选择
             Umami.trackEvent('use_language', { name: sender.value })
+        },
+
+        gaChatView(event: Event) {
+            const sender = event.target as HTMLInputElement
+            // UM：上传Chat View 选择
+            Umami.trackEvent('use_chatview', { name: sender.value })
+        },
+
+        gaColor(event: Event) {
+            const sender = event.target as HTMLInputElement
+            // UM：上传主题颜色选择
+            Umami.trackEvent('use_theme_color', { name: this.colors[Number(sender.dataset.id)] })
         },
 
         setInitialScaleShow(event: Event) {
@@ -233,8 +257,23 @@ export default defineComponent({
                     sender.checked = false
                 } else {
                     baseApp.classList.add('no-touch')
+                    // UM：上传禁用触摸(彩蛋)的选择
+                    Umami.trackEvent('click_statistics', { name: 'touch_randomly' })
                 }
             }
+        },
+
+        getAppendChatView() {
+            // 获取附加的聊天视图，它放置在项目 src/pages/chat-view 下
+            const chatView = require.context('@/pages/chat-view', true, /\.vue$/)
+            const chatViewList: string[] = []
+            chatView.keys().forEach((key: string) => {
+                const name = key.split('/').pop()?.split('.')[0]
+                if (name && name.startsWith('Chat')) {
+                    chatViewList.push(name)
+                }
+            })
+            return chatViewList
         }
     },
     mounted() {
@@ -247,6 +286,9 @@ export default defineComponent({
                 watch()
             }
         )
+        this.$watch(() => runtimeData.sysConfig.chatview_name, () => {
+            this.chatview_name = runtimeData.sysConfig.chatview_name
+        })
     }
 })
 </script>
